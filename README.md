@@ -19,10 +19,11 @@ otel-collector (opentelemetry-collector-contrib)
       │
       ├── traces  ──► Tempo (4317) ───────────┐
       ├── metrics ──► exposed em :8889 ◄── Prometheus (scrape)
-      └── logs    ──► OpenSearch (9200)       │
-                                               ▼
-                                           Grafana (3000)
-                              datasources: Prometheus, Tempo, OpenSearch
+      └── logs    ──► OpenSearch (9200) ──┬──►┘
+                                           │       Grafana (3000)
+                                           │  datasources: Prometheus, Tempo, OpenSearch
+                                           ▼
+                              OpenSearch Dashboards (5601)
 ```
 
 ## Serviços (docker-compose)
@@ -34,6 +35,7 @@ otel-collector (opentelemetry-collector-contrib)
 | prometheus     | 9090   | Scrape das métricas expostas pelo collector |
 | tempo          | 3200   | Armazena traces                         |
 | opensearch     | 9200   | Armazena logs                           |
+| opensearch-dashboards | 5601 | UI de consulta do OpenSearch (Discover / Dev Tools) |
 | grafana        | 3000   | Dashboards (admin / admin)              |
 
 ## Como rodar
@@ -63,6 +65,37 @@ e, ocasionalmente (20% das vezes), um log de erro.
 - **Prometheus** direto: http://localhost:9090
 - **OpenSearch** direto: http://localhost:9200/otel-logs*/_search?pretty
   (segurança desabilitada — só para teste local)
+- **OpenSearch Dashboards**: http://localhost:5601 (sem login)
+
+### Consultar logs no OpenSearch Dashboards
+
+O índice `otel-logs` só existe depois que a app grava pelo menos um log — se
+o container `opensearch` acabou de subir, gere tráfego antes (seção acima).
+
+1. ☰ → **Dashboards Management** → **Index patterns** → **Create index pattern**
+2. Nome: `otel-logs*` → confirme que aparece "matches 1 source: otel-logs" → **Next step**
+3. Time field: `@timestamp` → **Create index pattern**
+4. ☰ → **Discover** → selecione `otel-logs*` no dropdown → ajuste o time range
+   (ex.: "Last 15 minutes")
+
+Campos úteis: `body` (mensagem do log), `severity.text` (INFO/ERROR),
+`resource.service.name` (`demo-app`), `traceId`/`spanId` (correlação com o
+trace no Tempo).
+
+Para consultas via DSL: ☰ → **Dev Tools**:
+
+```json
+GET otel-logs/_search
+{
+  "query": { "match_all": {} },
+  "sort": [{ "@timestamp": "desc" }]
+}
+```
+
+> **Dados são efêmeros**: o `docker-compose.yml` não declara volume para o
+> OpenSearch. Todo `docker compose down` (ou recriação do container) apaga o
+> índice — normal para um ambiente de teste, mas se quiser persistir entre
+> reinícios, adicione um volume no serviço `opensearch`.
 
 ## Notas
 
