@@ -3,21 +3,24 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
     url: http://prometheus:9090
     isDefault: true
 
   - name: Tempo
     type: tempo
+    uid: tempo
     access: proxy
     url: http://tempo:3200
 
   - name: OpenSearch
     type: grafana-opensearch-datasource
+    uid: opensearch
     access: proxy
     url: http://opensearch:9200
     jsonData:
       database: "otel-logs*"
       timeField: "@timestamp"
-      version: "2.x"
+      version: "2.15.0"
       flavor: opensearch

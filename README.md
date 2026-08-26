@@ -59,6 +59,10 @@ e, ocasionalmente (20% das vezes), um log de erro.
 ## Onde ver os dados
 
 - **Grafana**: http://localhost:3000 (login `admin` / `admin`)
+  - Dashboard **Demo App Overview** já provisionado (abre na home) com:
+    total de requests, taxa de requests por rota, contagem de logs de erro,
+    logs recentes e traces recentes — tudo lendo dos 3 datasources
+    automaticamente.
   - Explore → datasource **Tempo** → busque traces do serviço `demo-app`
   - Explore → datasource **Prometheus** → query `demo_app_requests_total`
   - Explore → datasource **OpenSearch** → índice `otel-logs*`
@@ -107,3 +111,16 @@ GET otel-logs/_search
   [opentelemetry-collector-contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib).
 - Plugin do Grafana para OpenSearch (`grafana-opensearch-datasource`) é
   instalado automaticamente via `GF_INSTALL_PLUGINS` no primeiro start.
+- Grafana está pinado em `11.3.1` (não `latest`): a v13.x testada tinha um bug
+  de renderização com dashboards vindos de provisionamento por arquivo — o
+  modelo do dashboard ficava correto no backend mas nenhum painel montava na
+  UI. `11.3.1` renderiza os mesmos painéis normalmente.
+- Os datasources usam `uid` fixo (`prometheus`, `tempo`, `opensearch`) em
+  `grafana/provisioning/datasources/datasources.yaml` — é isso que permite o
+  dashboard (`grafana/provisioning/dashboards/demo-app-overview.json`)
+  referenciá-los de forma determinística sem depender de UIDs gerados
+  automaticamente.
+- O campo `jsonData.version` do datasource OpenSearch precisa ser um semver
+  válido da versão real do OpenSearch (ex.: `2.15.0`); `"2.x"` quebra as
+  queries do plugin (`grafana-opensearch-datasource`) com erro
+  `Invalid Semantic Version`.

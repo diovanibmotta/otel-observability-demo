@@ -76,7 +76,7 @@ services:
       - observability
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.3.1
     container_name: grafana
     environment:
       - GF_INSTALL_PLUGINS=grafana-opensearch-datasource
